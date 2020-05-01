@@ -1,0 +1,235 @@
+# Mini-project #6 - Blackjack
+
+import simplegui
+import random
+
+# load card sprite - 936x384 - source: jfitz.com
+CARD_SIZE = (72, 96)
+CARD_CENTER = (36, 48)
+card_images = simplegui.load_image("http://storage.googleapis.com/codeskulptor-assets/cards_jfitz.png")
+
+CARD_BACK_SIZE = (72, 96)
+CARD_BACK_CENTER = (36, 48)
+card_back = simplegui.load_image("http://storage.googleapis.com/codeskulptor-assets/card_jfitz_back.png")    
+
+# initialize some useful global variables
+in_play = False
+outcome = ""
+display=""
+score = 0
+flag=True
+
+# define globals for cards
+SUITS = ('C', 'S', 'H', 'D')
+RANKS = ('A', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K')
+VALUES = {'A':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, 'T':10, 'J':10, 'Q':10, 'K':10}
+
+
+# define card class
+class Card:
+    def __init__(self, suit, rank):
+        if (suit in SUITS) and (rank in RANKS):
+            self.suit = suit
+            self.rank = rank
+        else:
+            self.suit = None
+            self.rank = None
+            print "Invalid card: ", suit, rank
+
+    def __str__(self):
+        return self.suit + self.rank
+
+    def get_suit(self):
+        return self.suit
+
+    def get_rank(self):
+        return self.rank
+
+    def draw(self, canvas, pos):
+        card_loc = (CARD_CENTER[0] + CARD_SIZE[0] * RANKS.index(self.rank), 
+                    CARD_CENTER[1] + CARD_SIZE[1] * SUITS.index(self.suit))
+        canvas.draw_image(card_images, card_loc, CARD_SIZE, [pos[0] + CARD_CENTER[0], pos[1] + CARD_CENTER[1]], CARD_SIZE)
+        
+# define hand class
+       
+class Hand:
+    def __init__(self):
+        # create Hand object
+        self.hand_lst=[]
+        
+    def __str__(self):
+        # return a string representation of a hand
+        string="Hand contains"
+        for card in self.hand_lst:
+            string+=" "
+            string+=str(card)
+        return string    
+            
+    def add_card(self, card):
+        # add a card object to a hand
+        self.hand_lst.append(card)
+        
+    def get_value(self):
+        # count aces as 1, if the hand has an ace, then add 10 to hand value if it doesn't bust
+        # compute the value of the hand, see Blackjack video
+        value=0
+        ace_count=0
+        for card in self.hand_lst:
+            if card.get_rank()=='A':
+                ace_count+=1
+            value+=VALUES[card.get_rank()]
+        if ace_count == 0:    
+            return value
+        else:
+            if value+10<=21:
+                return value+10
+            else:
+                return value
+    def draw(self, canvas, pos):
+        # draw a hand on the canvas, use the draw method for cards
+        for card in self.hand_lst:
+            
+            card_loc = (CARD_CENTER[0] + CARD_SIZE[0] * RANKS.index(card.get_rank()), 
+                        CARD_CENTER[1] + CARD_SIZE[1] * SUITS.index(card.get_suit()))
+            #print card_loc
+            canvas.draw_image(card_images, card_loc, CARD_SIZE, [pos[0] + CARD_CENTER[0], pos[1] + CARD_CENTER[1]], CARD_SIZE)
+            pos[0]+=120
+      
+      
+        
+# define deck class 
+class Deck:
+    def __init__(self):
+        self.deck_lst=[]
+        for suit in SUITS:
+            for card in RANKS:
+                self.deck_lst.append(suit+card)
+
+    def shuffle(self):
+        # shuffle the deck 
+        # use random.shuffle()
+        random.shuffle(self.deck_lst)
+        
+    def deal_card(self):
+         # deal a card object from the deck
+         dealt_card=self.deck_lst[-1]
+         self.deck_lst.pop(self.deck_lst.index(dealt_card))
+         return Card(dealt_card[0],dealt_card[1])   
+    
+    def __str__(self):
+        # return a string representing the deck
+        string="Deck contains"
+        for card in self.deck_lst:
+            string+=" "
+            string+=str(card)
+        return string 
+
+#define event handlers for buttons
+def deal():
+    global outcome, in_play, game_deck,Player,Dealer,display,score,flag
+    if in_play:
+        score-=1
+        outcome="Player Lost"
+        display="New Deal?"
+        in_play=False
+        flag=False
+    else:    
+        game_deck = Deck()
+        game_deck.shuffle()
+        Player=Hand()
+        Dealer=Hand()
+        for i in range(2):
+            Player.add_card(game_deck.deal_card())
+            Dealer.add_card(game_deck.deal_card())
+        #print "Player's",Player
+        #print "Dealer's",Dealer    
+        # your code goes here
+        display="Hit or Stand?"
+        outcome=""
+        in_play = True
+        flag=True
+    
+def hit():
+    # replace with your code below
+    global Player,Dealer,game_deck,score,outcome,in_play,flag,display
+    if in_play:
+        value=Player.get_value()
+        if value <= 21:
+           Player.add_card(game_deck.deal_card())
+           value=Player.get_value()
+           if value > 21:
+                outcome="You went bust and lose"
+                display="New Deal?"
+                score-=1
+                in_play=False
+                flag=False
+         
+                
+    # if the hand is in play, hit the player
+   
+    # if busted, assign a message to outcome, update in_play and score
+       
+def stand():
+    # replace with your code below
+     global in_play,Dealer,score,outcome,flag,display
+     flag=False   
+     if in_play == True:
+       
+            value=Dealer.get_value()
+            while value < 17:
+                Dealer.add_card(game_deck.deal_card())
+                value=Dealer.get_value()
+            if value > 21:
+                score+=1
+                outcome="Dealer Busted"
+                in_play=False
+                display="New Deal?"
+            else:
+                if value >= Player.get_value():
+                    outcome="You Lose"
+                    in_play=False
+                    display="New Deal?"
+                    score-=1
+                else:
+                    score+=1
+                    in_play=False
+                    outcome="Dealer Lost"
+                    display="New Deal?"
+    # if hand is in play, repeatedly hit dealer until his hand has value 17 or more
+
+    # assign a message to outcome, update in_play and score
+
+# draw handler    
+def draw(canvas):
+    # test to make sure that card.draw works, replace with your code below
+    global display,outcome,Player,Dealer,flag
+    canvas.draw_text('Blackjack', (120, 50), 40, 'White', 'serif')
+    canvas.draw_text('Score  '+str(score), (420, 50), 20, 'Black', 'serif')
+    canvas.draw_text('Dealer', (100, 100), 20, 'Black', 'serif')
+    canvas.draw_text('Player', (100, 340), 20, 'Black', 'serif')
+    canvas.draw_text(display, (300, 340), 20, 'Black', 'serif')
+    canvas.draw_text(outcome, (300, 100), 20, 'Black', 'serif')
+    pos=[100,400]
+    Player.draw(canvas,pos)
+    pos=[100,140]
+    Dealer.draw(canvas,pos)
+    if flag:    
+       canvas.draw_image(card_back, CARD_BACK_CENTER, CARD_BACK_SIZE, [136,188], CARD_BACK_SIZE)
+        
+# initialization frame
+frame = simplegui.create_frame("Blackjack", 600, 600)
+frame.set_canvas_background("Green")
+
+#create buttons and canvas callback
+frame.add_button("Deal", deal, 200)
+frame.add_button("Hit",  hit, 200)
+frame.add_button("Stand", stand, 200)
+frame.set_draw_handler(draw)
+
+
+# get things rolling
+deal()
+frame.start()
+
+
+# remember to review the gradic rubric
